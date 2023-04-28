@@ -1,16 +1,15 @@
 Package: blueRsky
-Title: What the Package Does (One Line, Title Case)
+Title: Talk to bluesky
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Colin", "Fraser", , "colin.r.fraser@gmail.com", role = c("aut", "cre"))
+Description: This package allows you to talk to bluesky from R.
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
+    getPass,
     purrr,
     rlang,
     wrapify
