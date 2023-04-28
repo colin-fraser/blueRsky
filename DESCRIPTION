@@ -13,3 +13,5 @@ Imports:
     purrr,
     rlang,
     wrapify
+URL: https://github.com/colin-fraser/blueRsky
+BugReports: https://github.com/colin-fraser/blueRsky/issues
