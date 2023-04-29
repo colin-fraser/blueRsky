@@ -4,7 +4,12 @@
 \alias{bsky_get_session}
 \title{Get information about the current session.}
 \usage{
-bsky_get_session(...)
+bsky_get_session(
+  ...,
+  credentials = default_credentials(wrapper),
+  action = default_action,
+  decode_if_success = decode_if_success_default_value
+)
 }
 \arguments{
 \item{...}{Additional arguments to requestor}
