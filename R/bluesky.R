@@ -1,14 +1,21 @@
 load_schema <- function(id) {
-  loc <- c("lexicons", strsplit(id, "\\.")[[1]]) |>
-    paste0(collapse = "/") |>
-    paste0(".json")
+  # nesting this in a function call causes it to load lazily,
+  # preventing it from calling load_schema until after the user
+  # calls the bsky_ function. This prevents package build errors.
+  f <- function() {
+    loc <- c("lexicons", strsplit(id, "\\.")[[1]]) |>
+      paste0(collapse = "/") |>
+      paste0(".json")
 
-  file_path <- system.file(loc, package = "blueRsky", mustWork = FALSE)
-  if (!file.exists(file_path)) {
-    stop(paste("Schema", id, "not found"))
+    file_path <- system.file(loc, package = "blueRsky", mustWork = FALSE)
+    if (!file.exists(file_path)) {
+      stop(paste("Schema", id, "not found"))
+    }
+
+    jsonlite::read_json(system.file(loc, package = "blueRsky", mustWork = TRUE))
+
   }
-
-  jsonlite::read_json(system.file(loc, package = "blueRsky", mustWork = TRUE))
+  f()
 }
 
 schema_type <- function(s) {
@@ -20,17 +27,11 @@ schema_description <- function(s) {
 }
 
 schema_id_to_requestor <- function(s, wrapper, override_defaults = NULL) {
-  # nesting this in a function call causes it to load lazily,
-  # preventing it from calling load_schema until after the user
-  # calls the bsky_ function. This prevents package build errors.
-  function(...) {
-    schema <- load_schema(s)
-    f <- switch(schema_type(schema),
-                query = schema_id_to_query_requestor(s, wrapper, override_defaults),
-                stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
-    )
-    f(...)
-  }
+  schema <- load_schema(s)
+  switch(schema_type(schema),
+              query = schema_id_to_query_requestor(s, wrapper, override_defaults),
+              stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
+  )
 }
 
 # Procedures ------------------------------------------------------------------------------------------------------
