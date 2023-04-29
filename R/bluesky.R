@@ -20,11 +20,16 @@ schema_description <- function(s) {
 }
 
 schema_id_to_requestor <- function(s, wrapper, override_defaults = NULL) {
-  schema <- load_schema(s)
-  if (schema_type(schema) == 'query') {
-    schema_id_to_query_requestor(s, wrapper, override_defaults)
-  } else {
-    stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(s)))
+  # nesting this in a function call causes it to load lazily,
+  # preventing it from calling load_schema until after the user
+  # calls the bsky_ function. This prevents package build errors.
+  function(...) {
+    schema <- load_schema(s)
+    f <- switch(schema_type(schema),
+                query = schema_id_to_query_requestor(s, wrapper, override_defaults),
+                stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
+    )
+    f(...)
   }
 }
 

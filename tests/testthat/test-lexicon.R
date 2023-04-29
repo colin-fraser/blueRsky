@@ -26,7 +26,6 @@ test_that("proc_parameters returns the correct parameters for a given ID", {
 test_that("query_parameter_names returns the correct parameter names for a given schema ID", {
   schema <- load_schema("app.bsky.feed.getAuthorFeed")
   param_names <- query_parameter_names(schema)
-
   expect_equal(param_names, c("actor", "limit", "cursor"))
 })
 

@@ -4,4 +4,4 @@
 ^LICENSE\.md$
 ^README\.Rmd$
 ^\.gitmodules$
-atproto/*
+^atproto/*

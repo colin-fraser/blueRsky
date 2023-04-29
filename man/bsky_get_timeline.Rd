@@ -4,20 +4,16 @@
 \alias{bsky_get_timeline}
 \title{A view of the user's home timeline.}
 \usage{
-bsky_get_timeline(
-  algorithm = NULL,
-  limit = NULL,
-  cursor = NULL,
-  ...,
-  credentials = default_credentials(wrapper),
-  action = default_action,
-  decode_if_success = decode_if_success_default_value
-)
+bsky_get_timeline(...)
 }
 \arguments{
+\item{...}{Additional arguments passed to requestor}
+
+\item{algorithm}{Algorithm to user}
+
 \item{limit}{number between 1 and 100}
 
-\item{...}{Additional arguments to requestor}
+\item{cursor}{cursor}
 
 \item{credentials}{Credential.}
 
@@ -26,8 +22,8 @@ bsky_get_timeline(
 \item{decode_if_success}{If FALSE, returns the whole response object. If true, returns the decoded response.}
 }
 \value{
-\link{Describe the return value here}
+A list of home timeline objects
 }
 \description{
-\link{Add a description here}
+A view of the user's home timeline.
 }

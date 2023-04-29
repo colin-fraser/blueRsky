@@ -10,8 +10,10 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
     getPass,
+    jsonlite,
     purrr,
     rlang,
+    stats,
     wrapify
 URL: https://github.com/colin-fraser/blueRsky
 BugReports: https://github.com/colin-fraser/blueRsky/issues

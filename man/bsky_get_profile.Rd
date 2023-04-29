@@ -4,27 +4,21 @@
 \alias{bsky_get_profile}
 \title{Get Profile}
 \usage{
-bsky_get_profile(
-  actor = blueRsky::get_session_handle(),
-  ...,
-  credentials = default_credentials(wrapper),
-  action = default_action,
-  decode_if_success = decode_if_success_default_value
-)
+bsky_get_profile(...)
 }
 \arguments{
-\item{actor}{Description of actor}
+\item{...}{Additional arguments passed to requestor}
 
-\item{...}{Description of ...}
+\item{actor}{Description of actor. Defaults to the logged-in user.}
 
-\item{credentials}{Description of credentials}
+\item{credentials}{Credential.}
 
-\item{action}{Description of action}
+\item{action}{Either 'perform' or 'dry-run'}
 
-\item{decode_if_success}{Description of decode_if_success}
+\item{decode_if_success}{If FALSE, returns the whole response object. If true, returns the decoded response.}
 }
 \value{
-\link{Describe the return value here}
+Profile
 }
 \description{
 Get Profile
