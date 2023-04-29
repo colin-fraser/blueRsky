@@ -3,3 +3,5 @@
 ^blueRsky\.Rproj$
 ^LICENSE\.md$
 ^README\.Rmd$
+^\.gitmodules$
+^atproto/*
