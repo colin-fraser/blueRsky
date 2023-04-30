@@ -21,7 +21,7 @@ bsky_get_session(
 \item{decode_if_success}{If FALSE, returns the whole response object. If true, returns the decoded response.}
 }
 \value{
-\link{Describe the return value here}
+session information
 }
 \description{
 Get information about the current session.

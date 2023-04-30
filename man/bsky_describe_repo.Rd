@@ -23,9 +23,6 @@ bsky_describe_repo(
 
 \item{decode_if_success}{If FALSE, returns the whole response object. If true, returns the decoded response.}
 }
-\value{
-\link{Describe the return value here}
-}
 \description{
 Get information about the repo, including the list of collections.
 }

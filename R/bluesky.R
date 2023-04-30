@@ -1,82 +1,34 @@
-load_schema <- function(id) {
-  # nesting this in a function call causes it to load lazily,
-  # preventing it from calling load_schema until after the user
-  # calls the bsky_ function. This prevents package build errors.
-  f <- function() {
-    loc <- c("lexicons", strsplit(id, "\\.")[[1]]) |>
-      paste0(collapse = "/") |>
-      paste0(".json")
+# helpers ---------------------------------------------------------------------------------------------------------
 
-    file_path <- system.file(loc, package = "blueRsky", mustWork = FALSE)
-    if (!file.exists(file_path)) {
-      stop(paste("Schema", id, "not found"))
-    }
 
-    jsonlite::read_json(system.file(loc, package = "blueRsky", mustWork = TRUE))
-  }
-  f()
+view_schema <- function(s) {
+  s <- load_schema(s)
+  cat(jsonlite::toJSON(s, pretty = TRUE, auto_unbox = TRUE))
 }
 
-schema_type <- function(s) {
-  s$defs$main$type
-}
-
-schema_description <- function(s) {
-  s$defs$main$description
-}
-
-schema_id_to_requestor <- function(s, wrapper, override_defaults = NULL) {
-  schema <- load_schema(s)
-  switch(schema_type(schema),
-    query = schema_id_to_query_requestor(s, wrapper, override_defaults),
-    stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
-  )
-}
-
-# Procedures ------------------------------------------------------------------------------------------------------
-
-proc_parameters <- function(s) {
-  s$defs$main$parameters
-}
-
-
-# Queries ---------------------------------------------------------------------------------------------------------
-
-query_parameters <- function(s) {
-  s$defs$main$parameters
-}
-
-query_parameter_names <- function(s) {
-  names(query_parameters(s)$properties)
-}
-
-query_to_function_args <- function(s, override_defaults = NULL) {
-  qps <- query_parameters(s)
-  required <- qps$required
-  names <- query_parameter_names(s)
-  lapply(names, \(x) {
+generate_function_args <- function(property_names, required, override_defaults) {
+  required_args <- lapply(required, \(x) {
     if (x %in% names(override_defaults)) {
       override_defaults[[x]]
-    } else if (x %in% required) {
+    } else {
       quote(expr = )
+    }
+  }) |>
+    setNames(required) |>
+    as.pairlist()
+
+  optional_args <- lapply(setdiff(property_names, required), \(x) {
+    if (x %in% names(override_defaults)) {
+      override_defaults[[x]]
     } else {
       NULL
     }
   }) |>
-    setNames(names) |>
+    setNames(setdiff(property_names, required)) |>
     as.pairlist()
+
+  c(required_args, optional_args)
 }
-
-schema_id_to_query_requestor <- function(schema_id, wrapper, override_defaults = NULL) {
-  s <- load_schema(schema_id)
-  stopifnot(schema_type(s) == "query")
-  r <- requestor(wrapper, s$id, query_args = query_to_function_args(s, override_defaults))
-  attr(r, "schema_id") <- schema_id
-  r
-}
-
-
-# Procedures ------------------------------------------------------------------------------------------------------
 
 # this is just a handy little development helper
 # for internal use
@@ -101,14 +53,119 @@ bsky_to_query_roxygen_comment <- function(func) {
   generate_roxygen_comment(func, description, param_descriptions = params)
 }
 
+# Schemas ---------------------------------------------------------------------------------------------------------
+
+load_schema <- function(id) {
+  # nesting this in a function call causes it to load lazily,
+  # preventing it from calling load_schema until after the user
+  # calls the bsky_ function. This prevents package build errors.
+  if (is.list(id)) {
+    id
+  } else if (is.character(id)) {
+    loc <- c("lexicons", strsplit(id, "\\.")[[1]]) |>
+      paste0(collapse = "/") |>
+      paste0(".json")
+
+    file_path <- system.file(loc, package = "blueRsky", mustWork = FALSE)
+    if (!file.exists(file_path)) {
+      stop(paste("Schema", id, "not found"))
+    }
+
+    jsonlite::read_json(system.file(loc, package = "blueRsky", mustWork = TRUE))
+  } else {
+    stop("id must either be a schema ID or a loaded schema")
+  }
+}
+
+schema_type <- function(s) {
+  s$defs$main$type
+}
+
+schema_description <- function(s) {
+  s$defs$main$description
+}
+
+schema_id_to_requestor <- function(s, wrapper, override_defaults = NULL) {
+  schema <- load_schema(s)
+  switch(schema_type(schema),
+         query = schema_id_to_query_requestor(s, wrapper, override_defaults),
+         stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
+  )
+}
+
+schema_id_to_constructor <- function(schema_id, override_defaults = NULL) {
+  schema_to_constructor(load_schema(schema_id), override_defaults)
+}
+
+
+
+# Record Types ------------------------------------------------------------------------------------------------------
+
+
+schema_to_constructor <- function(schema, override_defaults = NULL) {
+  schema <- load_schema(schema)
+  properties <- schema$defs$main$record$properties
+  required <- unlist(schema$defs$main$record$required)
+  property_names <- names(properties)
+  args <- generate_function_args(property_names, required, override_defaults)
+  wrapify::super_simple_constructor(!!!args, .class = "list", .prune = TRUE)
+}
+
+post <- schema_to_constructor(
+  "app.bsky.feed.post",
+  override_defaults = list(createdAt = quote(format(Sys.time(), tz = "UTC", format = "%Y-%m-%dT%H:%M:%SZ")))
+)
+
+
+# Procedures ------------------------------------------------------------------------------------------------------
+
+proc_input_schema <- function(s) {
+  schema <- load_schema(s)
+  schema$defs$main$input$schema
+}
+
+procedure_to_requestor <- function(s, override_defaults = NULL) {
+  schema <- load_schema(s)
+  input_schema <- proc_input_schema(schema)
+  args <- generate_function_args(names(input_schema$properties), names(input_schema$required), override_defaults)
+  wrapify::requestor(bluesky, schema$id, body_args = args, method = 'post')
+}
+
+
+# Queries ---------------------------------------------------------------------------------------------------------
+
+query_parameters <- function(s) {
+  s$defs$main$parameters
+}
+
+query_parameter_names <- function(s) {
+  names(query_parameters(s)$properties)
+}
+
+query_to_function_args <- function(s, override_defaults = NULL) {
+  qps <- query_parameters(s)
+  required <- qps$required
+  names <- query_parameter_names(s)
+  generate_function_args(names, required, override_defaults)
+}
+
+schema_id_to_query_requestor <- function(schema_id, wrapper, override_defaults = NULL) {
+  s <- load_schema(schema_id)
+  stopifnot(schema_type(s) == "query")
+  r <- wrapify::requestor(wrapper, s$id, query_args = query_to_function_args(s, override_defaults))
+  attr(r, "schema_id") <- schema_id
+  r
+}
+
+
 # Bluesky ---------------------------------------------------------------------------------------------------------
 
 
 #' @import wrapify
-bluesky <- wrapper(
+bluesky <- wrapify::wrapper(
   "bsky.social",
   "/xrpc/",
-  auth_type = bearer_auth_type(),
+  auth_type = wrapify::bearer_auth_type(),
   key_management = "env",
   env_var_name = "BLUESKY_ACCESS_TOKEN",
   credential_setter = "bsky_login",
@@ -138,7 +195,7 @@ get_session_handle <- function() {
 }
 
 # set the access token to the environment variable
-set_access_token <- credential_setter(bluesky)
+set_access_token <- wrapify::credential_setter(bluesky)
 
 #' @importFrom rlang %||%
 #' @export
@@ -151,13 +208,13 @@ bsky_login <- function(user = NULL, pwd = NULL) {
 }
 
 #' @export
-bsky_create_session <- requestor(
+bsky_create_session <- wrapify::requestor(
   purrr::assign_in(bluesky, "key_management", "none"), # this is a hack because this call
   # doesn't need to be authenticated
   # and there's no other way to specify
   # that
   "com.atproto.server.createSession",
-  body_args = function_args(identifier = , password = ),
+  body_args = wrapify::function_args(identifier = , password = ),
   method = "post"
 )
 
@@ -169,7 +226,7 @@ bsky_create_session <- requestor(
 #' @param action Either 'perform' or 'dry-run'
 #' @param decode_if_success If FALSE, returns the whole response object. If true, returns the decoded response.
 #'
-#' @return [Describe the return value here]
+#' @return session information
 #' @export
 bsky_get_session <- bsky_requestor(
   "com.atproto.server.getSession"
@@ -228,23 +285,6 @@ bsky_search_actors <- bsky_requestor(
   "app.bsky.actor.searchActors"
 )
 
-bsky_post_ <- requestor(
-  bluesky,
-  "com.atproto.repo.createRecord",
-  body_args = function_args(
-    record = ,
-    collection = "app.bsky.feed.post",
-    "$type" = "app.bsky.feed.post",
-    repo = quote(blueRsky::get_session_did())
-  ),
-  method = "post"
-)
-
-#' @export
-bsky_post <- function(text) {
-  bsky_post_(post(text))
-}
-
 #' Who is following an actor?
 #'
 #'
@@ -295,9 +335,58 @@ bsky_get_likes <- bsky_requestor(
 #' @param action Either 'perform' or 'dry-run'
 #' @param decode_if_success If FALSE, returns the whole response object. If true, returns the decoded response.
 #'
-#' @return [Describe the return value here]
 #' @export
 bsky_describe_repo <- bsky_requestor(
   "com.atproto.repo.describeRepo",
   override_defaults = list(repo = quote(blueRsky::get_session_handle()))
 )
+
+
+bsky_create_record <- procedure_to_requestor("com.atproto.repo.createRecord")
+bsky_delete_record <- procedure_to_requestor("com.atproto.repo.deleteRecord")
+
+#' Create a new post
+#'
+#' This function creates a new post in the user's feed.
+#'
+#' @param text A character string containing the text of the post.
+#' @param user_did An at-identifier representing the user's DID. Defaults to the current session DID.
+#'
+#' @return A list containing the created post's information.
+#' @export
+#' @examples
+#' \dontrun{
+#'   bsky_login("username", "password")
+#'   result <- bsky_create_post("Hello, world!")
+#'   print(result)
+#' }
+bsky_create_post <- function(text, user_did = blueRsky::get_session_did()) {
+  bsky_create_record(
+    repo = user_did,
+    collection = "app.bsky.feed.post",
+    `$type` = "app.bsky.feed.post",
+    record = post(text)
+  )
+}
+
+
+#' Delete a post
+#'
+#' This function deletes a post from the user's feed.
+#'
+#' @param post_key A character string representing the post's key.
+#' @param user_did An at-identifier representing the user's DID. Defaults to the current session DID.
+#'
+#' @return An HTTP response object. If successful, the status code will be 200.
+#' @export
+#' @examples
+#' \dontrun{
+#'   bsky_login("username", "password")
+#'   post_key <- "example_post_key"
+#'   response <- bsky_delete_post(post_key)
+#'   print(response$status_code)
+#' }
+bsky_delete_post <- function(post_key, user_did = blueRsky::get_session_did()) {
+  bsky_delete_record(repo = user_did, collection = "app.bsky.feed.post", rkey = post_key, decode_if_success = FALSE)
+}
+

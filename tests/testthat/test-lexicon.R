@@ -10,19 +10,6 @@ test_that("get_schema throws an error for non-existent schema IDs", {
   expect_error(load_schema("nonexistent.schema.id"))
 })
 
-test_that("proc_parameters returns the correct parameters for a given ID", {
-  schema <- load_schema("app.bsky.feed.getTimeline")
-  params <- proc_parameters(schema)
-  expect_equal(params$type, "params")
-  expect_equal(names(params$properties), c("algorithm", "limit", "cursor"))
-  expect_equal(params$properties$algorithm$type, "string")
-  expect_equal(params$properties$limit$type, "integer")
-  expect_equal(params$properties$limit$minimum, 1)
-  expect_equal(params$properties$limit$maximum, 100)
-  expect_equal(params$properties$limit$default, 50)
-  expect_equal(params$properties$cursor$type, "string")
-})
-
 test_that("query_parameter_names returns the correct parameter names for a given schema ID", {
   schema <- load_schema("app.bsky.feed.getAuthorFeed")
   param_names <- query_parameter_names(schema)
