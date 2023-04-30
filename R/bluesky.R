@@ -13,7 +13,6 @@ load_schema <- function(id) {
     }
 
     jsonlite::read_json(system.file(loc, package = "blueRsky", mustWork = TRUE))
-
   }
   f()
 }
@@ -29,8 +28,8 @@ schema_description <- function(s) {
 schema_id_to_requestor <- function(s, wrapper, override_defaults = NULL) {
   schema <- load_schema(s)
   switch(schema_type(schema),
-              query = schema_id_to_query_requestor(s, wrapper, override_defaults),
-              stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
+    query = schema_id_to_query_requestor(s, wrapper, override_defaults),
+    stop(paste("schema_id_to_requestor not implemented for schema type", schema_type(schema)))
   )
 }
 
@@ -60,8 +59,7 @@ query_to_function_args <- function(s, override_defaults = NULL) {
       override_defaults[[x]]
     } else if (x %in% required) {
       quote(expr = )
-    }
-    else {
+    } else {
       NULL
     }
   }) |>
@@ -71,7 +69,7 @@ query_to_function_args <- function(s, override_defaults = NULL) {
 
 schema_id_to_query_requestor <- function(schema_id, wrapper, override_defaults = NULL) {
   s <- load_schema(schema_id)
-  stopifnot(schema_type(s) == 'query')
+  stopifnot(schema_type(s) == "query")
   r <- requestor(wrapper, s$id, query_args = query_to_function_args(s, override_defaults))
   attr(r, "schema_id") <- schema_id
   r
@@ -87,9 +85,9 @@ bsky_to_query_roxygen_comment <- function(func) {
   s <- load_schema(schema_id)
   params <- query_parameters(s)$properties |>
     purrr::map(\(x) {
-      if (x$type == 'string') {
+      if (x$type == "string") {
         x$format
-      } else if (x$type == 'integer') {
+      } else if (x$type == "integer") {
         paste("number between", x$minimum, "and", x$maximum)
       } else {
         x$type
@@ -98,7 +96,7 @@ bsky_to_query_roxygen_comment <- function(func) {
   params[["..."]] <- "Additional arguments to requestor"
   params[["credentials"]] <- "Credential."
   params[["action"]] <- "Either 'perform' or 'dry-run'"
-  params[['decode_if_success']] <- "If FALSE, returns the whole response object. If true, returns the decoded response."
+  params[["decode_if_success"]] <- "If FALSE, returns the whole response object. If true, returns the decoded response."
   description <- schema_description(s)
   generate_roxygen_comment(func, description, param_descriptions = params)
 }
@@ -111,9 +109,9 @@ bluesky <- wrapper(
   "bsky.social",
   "/xrpc/",
   auth_type = bearer_auth_type(),
-  key_management = 'env',
-  env_var_name = 'BLUESKY_ACCESS_TOKEN',
-  credential_setter = 'bsky_login',
+  key_management = "env",
+  env_var_name = "BLUESKY_ACCESS_TOKEN",
+  credential_setter = "bsky_login",
   session = rlang::env(),
   user_agent = "blueRsky R Package"
 )
@@ -131,12 +129,12 @@ get_session_info <- function(nm) {
 
 #' @export
 get_session_did <- function() {
-  get_session_info('did')
+  get_session_info("did")
 }
 
 #' @export
 get_session_handle <- function() {
-  get_session_info('handle')
+  get_session_info("handle")
 }
 
 # set the access token to the environment variable
@@ -155,12 +153,12 @@ bsky_login <- function(user = NULL, pwd = NULL) {
 #' @export
 bsky_create_session <- requestor(
   purrr::assign_in(bluesky, "key_management", "none"), # this is a hack because this call
-                                                       # doesn't need to be authenticated
-                                                       # and there's no other way to specify
-                                                       # that
+  # doesn't need to be authenticated
+  # and there's no other way to specify
+  # that
   "com.atproto.server.createSession",
   body_args = function_args(identifier = , password = ),
-  method = 'post'
+  method = "post"
 )
 
 #' Get information about the current session.
@@ -230,17 +228,16 @@ bsky_search_actors <- bsky_requestor(
   "app.bsky.actor.searchActors"
 )
 
-
-
 bsky_post_ <- requestor(
   bluesky,
   "com.atproto.repo.createRecord",
-  body_args = function_args(record = ,
-                            collection = "app.bsky.feed.post",
-                            "$type" = "app.bsky.feed.post",
-                            repo = quote(blueRsky::get_session_did())
+  body_args = function_args(
+    record = ,
+    collection = "app.bsky.feed.post",
+    "$type" = "app.bsky.feed.post",
+    repo = quote(blueRsky::get_session_did())
   ),
-  method = 'post'
+  method = "post"
 )
 
 #' @export
@@ -248,31 +245,43 @@ bsky_post <- function(text) {
   bsky_post_(post(text))
 }
 
+#' Who is following an actor?
+#'
+#'
+#' @param actor at-identifier
+#' @param limit number between 1 and 100
+#' @param cursor cursor
+#' @param ... Additional arguments to requestor
+#' @param credentials Credential.
+#' @param action Either 'perform' or 'dry-run'
+#' @param decode_if_success If FALSE, returns the whole response object. If true, returns the decoded response.
+#'
+#' @return list of followers
 #' @export
-bsky_get_followers <- requestor(
-  bluesky,
+bsky_get_followers <- bsky_requestor(
   "app.bsky.graph.getFollowers",
-  query_args = function_args(actor = quote(blueRsky::get_session_handle()))
+  override_defaults = list(actor = quote(blueRsky::get_session_handle()))
 )
 
+#' Who does the viewer mute?
+#'
+#'
+#' @param limit number between 1 and 100
+#' @param cursor cursor
+#' @param ... Additional arguments to requestor
+#' @param credentials Credential.
+#' @param action Either 'perform' or 'dry-run'
+#' @param decode_if_success If FALSE, returns the whole response object. If true, returns the decoded response.
+#'
+#' @return list of mutes
 #' @export
-bsky_get_mutes <- requestor(
-  bluesky,
+bsky_get_mutes <- bsky_requestor(
   "app.bsky.graph.getMutes",
-  query_args = function_args(actor = quote(blueRsky::get_session_handle()))
+  override_defaults = list(actor = quote(blueRsky::get_session_handle()))
 )
 
 #' @export
-bsky_get_likes <- requestor(
-  bluesky,
+bsky_get_likes <- bsky_requestor(
   "app.bsky.feed.getLikes",
-  query_args = function_args(uri = quote(blueRsky::get_session_handle()))
+  override_defaults = list(uri = quote(blueRsky::get_session_handle()))
 )
-
-# Helpers ---------------------------------------------------------------------------------------------------------
-
-#' @export
-datetime_format <- function(x) {
-  format(x, tz = 'UTC', format = '%Y-%m-%dT%H:%M:%SZ')
-}
-
