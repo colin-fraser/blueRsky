@@ -46,8 +46,24 @@ library(blueRsky)
 bsky_login(username, app_password)
 ```
 
-Functions that start with `bsky_` talk to bluesky. Here's how you can send a post.
+Functions that start with `bsky_` talk to bluesky. 
 
-``` r
-bsky_post("This post was created in R using the blueRsky package at github.com/colin-fraser/blueRsky")
+## Sending a post
+Here's how you can send a post.
+
+```{r}
+post <- bsky_create_post("This post was created in R using the blueRsky package at github.com/colin-fraser/blueRsky")
+post
 ```
+
+## Fetch a timeline
+
+```{r}
+tl <- bsky_get_timeline(limit = 10)
+tl$feed |> 
+  purrr::map(\(x) {
+    paste(x$post$author$handle, x$post$record$text, sep = ': ')
+  })
+```
+
+
