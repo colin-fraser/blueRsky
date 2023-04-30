@@ -285,3 +285,19 @@ bsky_get_likes <- bsky_requestor(
   "app.bsky.feed.getLikes",
   override_defaults = list(uri = quote(blueRsky::get_session_handle()))
 )
+
+#' Get information about the repo, including the list of collections.
+#'
+#'
+#' @param repo at-identifier
+#' @param ... Additional arguments to requestor
+#' @param credentials Credential.
+#' @param action Either 'perform' or 'dry-run'
+#' @param decode_if_success If FALSE, returns the whole response object. If true, returns the decoded response.
+#'
+#' @return [Describe the return value here]
+#' @export
+bsky_describe_repo <- bsky_requestor(
+  "com.atproto.repo.describeRepo",
+  override_defaults = list(repo = quote(blueRsky::get_session_handle()))
+)
