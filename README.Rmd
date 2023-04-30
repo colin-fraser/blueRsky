@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
-bsky_login(user = 'colin-fraser.net', pwd = Sys.getenv("BLUESKY_PWD"))
+bsky_login(user = "colin-fraser.net", pwd = Sys.getenv("BLUESKY_PWD"))
 ```
 
 # blueRsky
